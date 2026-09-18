@@ -24,7 +24,13 @@ export function createExchangeableApi<TResource, TCreatePayload, TUpdatePayload 
 ) {
   return {
     async list(params: ExchangeableListParams = {}) {
-      const { data } = await http.get<PaginatedResponse<TResource>>(`/${resource}`, { params })
+      // `mine: true` passe par la route authentifiée dédiée (/me/items,
+      // /me/skills) plutôt que par le catalogue public : l'authentification
+      // y est garantie par le middleware `auth:sanctum` côté API, au lieu de
+      // dépendre d'une résolution d'utilisateur optionnelle sur une route
+      // publique (voir routes/api.php côté back).
+      const endpoint = params.mine ? `/me/${resource}` : `/${resource}`
+      const { data } = await http.get<PaginatedResponse<TResource>>(endpoint, { params })
 
       return data
     },
