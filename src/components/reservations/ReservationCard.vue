@@ -21,8 +21,12 @@ const auth = useAuthStore()
 const toast = useToastStore()
 const actionLoading = ref<'accept' | 'decline' | 'cancel' | 'complete' | null>(null)
 
-const isOwner = computed(() => auth.user?.id === props.reservation.reservable.owner.id)
-const isRequester = computed(() => auth.user?.id === props.reservation.requester.id)
+// Chaînage optionnel sur toute la profondeur : une seule réservation dont
+// les relations `reservable`/`owner`/`requester` seraient incomplètes côté
+// API (donnée orpheline, chargement manquant sur un endpoint qu'on aurait
+// oublié) ne doit jamais faire planter tout l'affichage de la liste.
+const isOwner = computed(() => auth.user?.id === props.reservation.reservable?.owner?.id)
+const isRequester = computed(() => auth.user?.id === props.reservation.requester?.id)
 
 const canRespond = computed(() => isOwner.value && props.reservation.status === 'pending')
 const canCancel = computed(
@@ -45,7 +49,7 @@ async function run(action: 'accept' | 'decline' | 'cancel' | 'complete') {
 
 const detailRoute = computed(() => ({
   name: props.reservation.reservable_type === 'item' ? 'item-detail' : 'skill-detail',
-  params: { id: props.reservation.reservable.id },
+  params: { id: props.reservation.reservable?.id },
 }))
 </script>
 
@@ -55,16 +59,16 @@ const detailRoute = computed(() => ({
       <div class="flex items-start justify-between gap-3">
         <RouterLink :to="detailRoute" class="flex items-center gap-2 font-medium hover:underline">
           <component :is="reservation.reservable_type === 'item' ? Package : Sparkles" class="size-4 text-muted-foreground" />
-          {{ reservation.reservable.title }}
+          {{ reservation.reservable?.title ?? 'Annonce supprimée' }}
         </RouterLink>
         <StatusBadge :status="reservation.status" />
       </div>
 
       <div class="flex items-center gap-2 text-sm text-muted-foreground">
         <Avatar class="size-6">
-          <AvatarFallback class="text-[10px]">{{ initials(reservation.requester.name) }}</AvatarFallback>
+          <AvatarFallback class="text-[10px]">{{ initials(reservation.requester?.name ?? '?') }}</AvatarFallback>
         </Avatar>
-        <span>{{ reservation.requester.name }} · {{ formatDateTime(reservation.created_at) }}</span>
+        <span>{{ reservation.requester?.name ?? 'Utilisateur inconnu' }} · {{ formatDateTime(reservation.created_at) }}</span>
       </div>
 
       <p v-if="reservation.message" class="rounded-md bg-muted px-3 py-2 text-sm">{{ reservation.message }}</p>
